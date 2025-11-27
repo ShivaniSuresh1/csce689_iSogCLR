@@ -22,6 +22,7 @@ class CLIP(nn.Module):
                  sogclr_gamma = 0.9,
                  rho_I = 0.1,
                  rho_T = 0.1,
+                 rho_init=6.0,
                  eta_init = 0.001,
                  tau_init = 0.01,
                  eta_sched = None,
