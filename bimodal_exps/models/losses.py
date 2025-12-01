@@ -388,10 +388,25 @@ class VICReg_Loss(nn.Module):
 class TempGenerator(torch.nn.Module):
     def __init__(self, feature_dim, M=256, tau_min=0.005, tau_max=1.0, dropout_rate=0.5):
         super(TempGenerator, self).__init__()
-        pass
+        self.tau_min = tau_min
+        self.tau_max = tau_max
+
+        # Simple 2-layer MLP that maps features -> scalar temperature
+        self.net = torch.nn.Sequential(
+            torch.nn.Linear(feature_dim, M),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Dropout(p=dropout_rate),
+            torch.nn.Linear(M, 1)  # one logit per sample
+        )
 
     def forward(self, x):
-        pass
+        # x: [batch_size, feature_dim]
+        logits = self.net(x)          # [batch_size, 1]
+        t = torch.sigmoid(logits)     # (0, 1)
+        # scale to [tau_min, tau_max]
+        tau = self.tau_min + (self.tau_max - self.tau_min) * t
+        return tau.squeeze(-1)        # [batch_size]
+
 
 
 # try to use temperature generator in place of individualized temperatures
