@@ -634,6 +634,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', default=30, type=int)
     parser.add_argument('--warmup_epochs', default=5, type=int)
     parser.add_argument('--cooldown_epochs', default=0, type=int)
+    parser.add_argument('--momentum', default=0.9, type=float)
 
     # training & test settings
     parser.add_argument('--use_amp', action='store_true')
