@@ -14,6 +14,8 @@ from .nvnovograd import NvNovoGrad
 from .radam import RAdam
 from .rmsprop_tf import RMSpropTF
 from .sgdp import SGDP
+from .adafactor_custom import AdafactorCustom  # NEW
+from .gcadamwp import GCAdamWP  # NEW
 
 try:
     from apex.optimizers import FusedNovoGrad, FusedAdam, FusedLAMB, FusedSGD
@@ -93,6 +95,25 @@ def create_optimizer(args, model, filter_bias_and_bn=True):
         if not args.lr:
             opt_args['lr'] = None
         optimizer = Adafactor(parameters, **opt_args)
+    elif args.opt.lower() == 'adafactor_custom':  # NEW
+        optimizer = AdafactorCustom(
+            model.parameters(),
+            lr=args.lr,                 # relative_step=True handles schedule
+            weight_decay=args.weight_decay,
+            relative_step=False,
+            scale_parameter=False,
+            warmup_init=False,
+            gc=True,
+            max_grad_norm=args.max_norm,
+        )
+
+    elif args.opt.lower() == 'gcadamwp':  # NEW
+        optimizer = GCAdamWP(
+            model.parameters(),
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+            max_grad_norm=args.max_norm,
+        )
     elif opt_lower == 'adahessian':
         optimizer = Adahessian(parameters, **opt_args)
     elif opt_lower == 'rmsprop':
