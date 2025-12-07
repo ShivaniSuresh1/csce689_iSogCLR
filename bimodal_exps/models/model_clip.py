@@ -4,7 +4,7 @@ import timm
 from transformers import AutoModel, RobertaModel
 
 from models.losses import CLIP_Loss, CyCLIP_Loss, SogCLR_Loss, VICReg_Loss
-from models.losses import iSogCLR_New_v2_Loss, iSogCLR_New_v1_Loss, onlineCLR_Loss, iSogCLR_New_Loss
+from models.losses import iSogCLR_New_v2_Loss, iSogCLR_New_v1_Loss, onlineCLR_Loss, iSogCLR_New_Loss, HardNegCLIP_Loss, MarginHardNegCLIP_Loss, SogCLR_Margin_Loss
 
 import torch
 from torch import nn
@@ -76,6 +76,32 @@ class CLIP(nn.Module):
             else:
                 self.criterion = CLIP_Loss(world_size=world_size, personalized_tau=personalized_tau, image_tau=self.image_temp, text_tau=self.text_temp)
 
+        elif self.ita_type == 'hardneg_clip':  # NEW
+            self.criterion = HardNegCLIP_Loss(
+                world_size=world_size,
+                temperature=self.temp,
+                hard_weight=2.0,
+                margin=0.0,
+            )
+
+        elif self.ita_type == 'margin_hardneg_clip':  # NEW
+            self.criterion = MarginHardNegCLIP_Loss(
+                world_size=world_size,
+                temperature=self.temp,
+                margin=0.2,
+                alpha=0.5,
+            )
+
+        elif self.ita_type == 'sogclr_margin':  # NEW
+            self.criterion = SogCLR_Margin_Loss(
+            world_size=world_size,
+            gamma=sogclr_gamma,
+            temperature=self.temp,
+            bsz=bsz,
+            margin=0.2,
+            margin_weight=0.1,
+        )
+
         elif self.ita_type == 'cyclip':
             self.criterion = CyCLIP_Loss(world_size=world_size, temperature=self.temp)
 
@@ -132,7 +158,7 @@ class CLIP(nn.Module):
 
         info_dict = {}
 
-        if self.ita_type in ['clip', 'cyclip']:
+        if self.ita_type in ['clip', 'cyclip','hardneg_clip', 'margin_hardneg_clip']:
             if self.personalized_tau:
                 if self.distributed:
                     image_ids = concat_all_gather(idx)
@@ -157,7 +183,7 @@ class CLIP(nn.Module):
             info_dict['avg_image_tau'] = 0.0
             info_dict['avg_text_tau'] = 0.0
 
-        elif self.ita_type == 'sogclr':
+        elif self.ita_type in ['sogclr', 'sogclr_margin']:
             if self.distributed:
                 image_ids = concat_all_gather(idx)
                 text_ids = concat_all_gather(text_idx)
