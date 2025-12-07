@@ -73,7 +73,8 @@ def train(model, data_loader, optimizer, tokenizer, epoch, max_epoch, warmup_ste
         text_input = tokenizer(text, padding='max_length', truncation=True, max_length=30, return_tensors="pt").to(device)
         
         # set learning rate for temperature network
-        optimizer.param_groups[2]["lr"] = optimizer.param_groups[0]["lr"] / 10.0
+        if len(optimizer.param_groups) > 2:
+            optimizer.param_groups[2]["lr"] = optimizer.param_groups[0]["lr"] / 10.0
 
         if grad_scaler is None:
             loss_ita, info_dict = model(image, text_input, idx=idx, text_idx=text_idx, epoch=epoch, max_epoch=max_epoch)
@@ -138,7 +139,10 @@ def train(model, data_loader, optimizer, tokenizer, epoch, max_epoch, warmup_ste
             metric_logger.update(lamda=0.0)
 
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
-        metric_logger.update(lr_temp_net=optimizer.param_groups[2]["lr"])
+        if len(optimizer.param_groups) > 2:
+            metric_logger.update(lr_temp_net=optimizer.param_groups[2]["lr"])
+        else:
+            metric_logger.update(lr_temp_net=0.0)
         if epoch==0 and i%step_size==0 and i<=warmup_iterations and scheduler is not None: 
             scheduler.step(i//step_size)
 
@@ -656,7 +660,7 @@ if __name__ == '__main__':
 
     # loss config
     parser.add_argument('--ita_type', required=True, choices=['clip', 'cyclip', 'vicreg', 'sogclr', 'sogclr_dro', 
-                        'isogclr_new_v2', 'isogclr_new_v1', 'isogclr_new', 'onlineclr'])
+                        'isogclr_new_v2', 'isogclr_new_v1', 'isogclr_new', 'onlineclr','hardneg_clip','margin_hardneg_clip','sogclr_margin'])
     parser.add_argument('--vicreg_sim_coeff', default=25.0, type=float)
     parser.add_argument('--vicreg_std_coeff', default=25.0, type=float)
     parser.add_argument('--sogclr_gamma', default=0.8, type=float)
